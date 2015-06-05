@@ -17,6 +17,8 @@ class JiraIssue(key: String) {
   var rootIssue = key
   /** source issue: direct link to the issue which is linked to this issue. Each issue should have only one source (when it's built from the QueryJira class). */
   var sourceIssue = key
+  /** level at which this issue is queried */
+  var level = 0
 
   /**
    * same key means same jira issue.

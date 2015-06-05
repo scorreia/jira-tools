@@ -55,17 +55,24 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
   }
 
   /**
- * @param jqlString the query in JQL language.
- * @return the list of issues returned by the query
- */
-def queryIssues(jqlString: String): List[JiraIssue] = {
+   * @param jqlString the query in JQL language.
+   * @return the list of issues returned by the query
+   */
+  def queryIssues(jqlString: String): List[JiraIssue] = {
     val issuesStr = this.query(URLEncoder.encode(jqlString, "UTF-8"))
     val json = JsonParser.parse(issuesStr)
     val allIssues = json \ "issues" \ "key"
-    val all = for {
+    var all = for {
       JArray(o) <- allIssues
       JField("key", JString(key)) <- o
     } yield key
+
+    // when only one issue is returned by the query, there is no list
+    if (all.isEmpty) { // there is probably a cleaner way to do that
+      all = for {
+        JString(key) <- allIssues
+      } yield key
+    }
 
     all.map(key => new JiraIssue(key))
 
@@ -103,18 +110,22 @@ def queryIssues(jqlString: String): List[JiraIssue] = {
     if (level > this.maxLevel) HashSet()
     else {
       if (canBrowse(issue)) {
+    	  issue.level = level 
+
         // only keep not queried issues
         val linkedIssues = this.queryLinkedJiraIssues(issue, rootIssueKey).linkedIssues.filter(canBrowse)
 
         // println("\t\tbrowsing: " + issue.issueKey )
         linkedIssues.par.foreach(i => {
           i.rootIssue = rootIssueKey
-          browse(i, rootIssueKey, level + 1)  // TODO maybe need to check canBrowse here instead of before...
+          browse(i, rootIssueKey, level + 1) // TODO maybe need to check canBrowse here instead of before...
+          i.level = level+1
           // println("csv;" + rootIssueKey + ";" + issue.issueKey + ";" + i.issueKey)
         })
 
         // avoid printing twice the same issues when different paths lead to the same issues.
-        issue.linkedIssues = linkedIssues
+        // issues that cannot be browsed are removed 
+        issue.linkedIssues = linkedIssues 
         linkedIssues
       } else HashSet()
 
@@ -126,9 +137,9 @@ def queryIssues(jqlString: String): List[JiraIssue] = {
     val result = !queriedIssues.contains(issue) && // not already browsed (avoid loops)
       (
         (issue.sourceIssue.startsWith("TDQ") && (
-            issue.issueKey .startsWith("DOCT") || issue.issueKey.startsWith("QAI"))) || // Doct and QAI issues having a TDQ as source issue
-        (issue.issueKey.startsWith("TDQ") && issueTypes.contains(issue.issueType)) || // TDQ issue with appropriate type
-        (issue.issueKey == issue.rootIssue)) // issue root issue    
+          issue.issueKey.startsWith("DOCT") || issue.issueKey.startsWith("QAI"))) || // Doct and QAI issues having a TDQ as source issue
+          (issue.issueKey.startsWith("TDQ") && issueTypes.contains(issue.issueType)) || // TDQ issue with appropriate type
+          (issue.issueKey == issue.rootIssue)) // issue root issue    
     result
   }
 

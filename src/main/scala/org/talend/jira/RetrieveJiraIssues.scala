@@ -44,7 +44,6 @@ object RetrieveJiraIssues {
 
     val issueTypes = List("New Feature", "Work Item", "Bug")
     val query = new QueryJira(user, passwd, issueTypes, depth);
-    // "project%20%3D%20PMDQ%20AND%20fixVersion%20%3D%20%226.0%20GA%22%20AND%20labels%20%3D%20%22R%26D_Signoff%22"
 
     val jiraIssues = query.queryIssues(userQuery)
     // val jiraIssues = List(new JiraIssue("PMDQ-252"))
@@ -63,7 +62,7 @@ object RetrieveJiraIssues {
     println()
 
     // write header
-    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI\n")
+    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \n")
 
     jiraIssues.foreach(jiraIssue => {
       val issues = query.browse(jiraIssue)
@@ -89,13 +88,14 @@ object RetrieveJiraIssues {
     c
   }
 
-  /** Recursively print all issues linked to the given Jira issue.
-   *  
- * @param issue the initial issue
- * @param isRoot whether it's the root issue
- * @return the string to print
- */
-private def recursivePrint(issue: JiraIssue, isRoot: Boolean = true ): String = {
+  /**
+   * Recursively print all issues linked to the given Jira issue.
+   *
+   * @param issue the initial issue
+   * @param isRoot whether it's the root issue
+   * @return the string to print
+   */
+  private def recursivePrint(issue: JiraIssue, isRoot: Boolean = true): String = {
     val sb = new StringBuilder()
     if (isRoot) sb.append(issue.issueKey + "\t" + details(issue) + "\n")
     else sb.append("\t" + details(issue) + "\n")
@@ -104,7 +104,7 @@ private def recursivePrint(issue: JiraIssue, isRoot: Boolean = true ): String = 
   }
 
   private def details(i: JiraIssue): String = {
-    i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue))
+    i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level))
   }
 
   private def tabPrint(str: String): String = {

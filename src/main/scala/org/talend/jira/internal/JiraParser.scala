@@ -70,6 +70,8 @@ class JiraParser {
           j.summary = inoutIssue.fields.summary
           j.status = inoutIssue.fields.status.name
 
+          // TODO compute DOCT and QAI flags here?
+          
           // TODO could filter out PM issue here? (currently done in QueryJira)
           jiraIssue.link(j)
           //          } else {
