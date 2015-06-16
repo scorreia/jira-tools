@@ -21,11 +21,12 @@ class JiraParser {
 
   case class IssueLinks(id: String, outwardIssue: Option[Issue], inwardIssue: Option[Issue])
   case class IssueType(name: String, subtask: Boolean)
-  case class ProjectCategory(self: String, id: String, description: String, name: String)
-  case class Project(key: String, name: String, projectCategory: ProjectCategory)
+  // case class ProjectCategory(self: String, id: String, description: String, name: String)
+  case class Project(key: String, name: String/*, projectCategory: ProjectCategory*/)
   case class Status(name: String)
-  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] /*, project:Project*/ , val status: Status) extends AbstractFields
-  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project, val status: Status) extends AbstractFields
+  case class FixVersion(name: String, releaseDate: Option[String])
+  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] , val status: Status) extends AbstractFields
+  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project, val status: Status, val fixVersions: List[FixVersion]) extends AbstractFields
   case class Issue(id: String, key: String, fields: Fields) extends BaseIssue
   case class ParentIssue(val id: String, key: String, val fields: ParentFields) extends BaseIssue
   case class Result(expand: String, startAt: Int, issues: List[ParentIssue])
@@ -54,8 +55,12 @@ class JiraParser {
         jiraIssue.issueProject = i.fields.project.key
         jiraIssue.issueType = i.fields.issuetype.name
         jiraIssue.status = i.fields.status.name
-        val linkedIssues = i.fields.issuelinks
 
+        // manage fixVersions
+        val fixVersions = i.fields.fixVersions
+        if (!fixVersions.isEmpty) jiraIssue.fixVersion = fixVersions.maxBy(f => f.name).name
+
+        val linkedIssues = i.fields.issuelinks
         linkedIssues.foreach(k => {
           var inoutIssue = chooseInOutIssue(k.outwardIssue)
           if (inoutIssue == null) inoutIssue = chooseInOutIssue(k.inwardIssue)
@@ -71,16 +76,17 @@ class JiraParser {
           j.status = inoutIssue.fields.status.name
 
           // TODO compute DOCT and QAI flags here?
-          
+
           // TODO could filter out PM issue here? (currently done in QueryJira)
           jiraIssue.link(j)
           //          } else {
           //            if (debug) println("No issue linked to " + k.id)
           //          }
         })
+
       })
     } catch {
-      case t: net.liftweb.json.MappingException => println("ERROR: Cannot parse json of " + jiraIssue.issueKey  + "\n" + jsonSrc) // todo: handle error
+      case t: net.liftweb.json.MappingException => println("ERROR: Cannot parse json of " + jiraIssue.issueKey + "\n" + jsonSrc, t) // todo: handle error
     }
     jiraIssue
   }

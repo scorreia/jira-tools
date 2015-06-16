@@ -62,7 +62,7 @@ object RetrieveJiraIssues {
     println()
 
     // write header
-    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \n")
+    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \t fixVersion(Max) \n")
 
     jiraIssues.foreach(jiraIssue => {
       val issues = query.browse(jiraIssue)
@@ -104,7 +104,7 @@ object RetrieveJiraIssues {
   }
 
   private def details(i: JiraIssue): String = {
-    i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level))
+    i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level) + tabPrint(i.fixVersion ))
   }
 
   private def tabPrint(str: String): String = {

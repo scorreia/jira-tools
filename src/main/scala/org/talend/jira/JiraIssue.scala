@@ -10,6 +10,7 @@ class JiraIssue(key: String) {
   var summary = ""
   var priority = ""
   var status = ""
+  var fixVersion = ""
   var hasLinkedDoctIssue = false
   var hasLinkedQaiIssue = false
   var linkedIssues: HashSet[JiraIssue] = new HashSet
