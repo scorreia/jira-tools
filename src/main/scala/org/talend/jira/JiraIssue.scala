@@ -11,6 +11,7 @@ class JiraIssue(key: String) {
   var priority = ""
   var status = ""
   var fixVersion = ""
+  var timeestimate = "0"
   var hasLinkedDoctIssue = false
   var hasLinkedQaiIssue = false
   var linkedIssues: HashSet[JiraIssue] = new HashSet
@@ -58,7 +59,7 @@ class JiraIssue(key: String) {
   }
 
   private def details(): String = {
-    rootIssue + tabPrint(sourceIssue) + tabPrint(issueKey) + tabPrint(issueType) + tabPrint(priority) + tabPrint(summary) + tabPrint(status) + tabPrint(issueProject) + tabPrint(String.valueOf(hasLinkedDoctIssue)) + tabPrint(String.valueOf(hasLinkedQaiIssue))
+    rootIssue + tabPrint(issueKey) + tabPrint(sourceIssue) + tabPrint(issueType) + tabPrint(priority) + tabPrint(summary) + tabPrint(status) + tabPrint(issueProject) + tabPrint(String.valueOf(hasLinkedDoctIssue)) + tabPrint(String.valueOf(hasLinkedQaiIssue)) + tabPrint(String.valueOf(level)) + tabPrint(fixVersion ) + tabPrint(String.valueOf(Integer.parseInt(timeestimate)/(60*60*8)))
   }
 
   private def tabPrint(str: String): String = {

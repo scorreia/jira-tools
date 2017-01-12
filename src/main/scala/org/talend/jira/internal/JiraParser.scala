@@ -25,8 +25,8 @@ class JiraParser {
   case class Project(key: String, name: String/*, projectCategory: ProjectCategory*/)
   case class Status(name: String)
   case class FixVersion(name: String, releaseDate: Option[String])
-  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] , val status: Status) extends AbstractFields
-  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project, val status: Status, val fixVersions: List[FixVersion]) extends AbstractFields
+  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] , val status: Status, val timeestimate:Option[String]) extends AbstractFields
+  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project, val status: Status, val timeestimate:Option[String], val fixVersions: List[FixVersion]) extends AbstractFields
   case class Issue(id: String, key: String, fields: Fields) extends BaseIssue
   case class ParentIssue(val id: String, key: String, val fields: ParentFields) extends BaseIssue
   case class Result(expand: String, startAt: Int, issues: List[ParentIssue])
@@ -49,12 +49,16 @@ class JiraParser {
       val r = json.extract[Result]
       if (r.issues.size > 1) println("WARNING: more than one issue in json. Expected only " + jiraIssue)
       r.issues.foreach(i => {
-        if (i.key.compareTo(jiraIssue.issueKey) != 0) println("ERROR: found " + i.key + " in json. Expected: " + jiraIssue.issueKey)
+        if (i.key.compareTo(jiraIssue.issueKey) != 0) {
+          // println("ERROR: found " + i.key + " in json. Expected: " + jiraIssue.issueKey)
+          // main issue is not the given issue. This happens when the main issue is an issue in an Epic.
+          // In this case, simply extract this issue and link it with the jiraIssue (that represents the Epic)
+          val issueInEpic = createJiraIssue(i)
+          jiraIssue.link(issueInEpic)
 
-        jiraIssue.summary = i.fields.summary
-        jiraIssue.issueProject = i.fields.project.key
-        jiraIssue.issueType = i.fields.issuetype.name
-        jiraIssue.status = i.fields.status.name
+        } else { // it's a regular linked issue
+
+        copyFieldsInformation(i, jiraIssue)
 
         // manage fixVersions
         val fixVersions = i.fields.fixVersions
@@ -69,12 +73,8 @@ class JiraParser {
           //            (issueTypes.contains(inoutIssue.fields.issuetype.name) ||
           //              inoutIssue.key.startsWith("DOCT") || // get all kinds of DOCT issues 
           //              inoutIssue.key.startsWith("QAI"))) { // get all kinds of QAI issues
-          val j = new JiraIssue(inoutIssue.key)
-          j.rootIssue = "" // reset root issue because it's a linked issue
-          j.issueType = inoutIssue.fields.issuetype.name
-          j.summary = inoutIssue.fields.summary
-          j.status = inoutIssue.fields.status.name
 
+          val j = createJiraIssue(inoutIssue)
           // TODO compute DOCT and QAI flags here?
 
           // TODO could filter out PM issue here? (currently done in QueryJira)
@@ -83,12 +83,43 @@ class JiraParser {
           //            if (debug) println("No issue linked to " + k.id)
           //          }
         })
-
+      }
       })
     } catch {
       case t: net.liftweb.json.MappingException => println("ERROR: Cannot parse json of " + jiraIssue.issueKey + "\n" + jsonSrc, t) // todo: handle error
     }
     jiraIssue
+  }
+
+
+  private def copyFieldsInformation(src: ParentIssue, dest: JiraIssue) = {
+    dest.summary = src.fields.summary
+    dest.issueProject = src.fields.project.key
+    dest.issueType = src.fields.issuetype.name
+    dest.status = src.fields.status.name
+    dest.timeestimate = src.fields.timeestimate.getOrElse("0")
+    dest
+  }
+
+  private def createJiraIssue(src: Issue)  = {
+    val j = new JiraIssue(src.key)
+    j.rootIssue = "" // reset root issue because it's a linked issue
+    j.issueType = src.fields.issuetype.name
+    j.summary = src.fields.summary
+    j.status = src.fields.status.name
+    j.timeestimate = src.fields.timeestimate.getOrElse("0")
+    j
+  }
+
+
+  private def createJiraIssue(src: ParentIssue)  = {
+    val j = new JiraIssue(src.key)
+    j.rootIssue = "" // reset root issue because it's a linked issue
+    j.issueType = src.fields.issuetype.name
+    j.summary = src.fields.summary
+    j.status = src.fields.status.name
+    j.timeestimate = src.fields.timeestimate.getOrElse("0")
+    j
   }
 
 }

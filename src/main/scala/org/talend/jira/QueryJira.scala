@@ -19,9 +19,9 @@ import sun.misc.BASE64Encoder
 import java.net.URLEncoder
 
 /**
- * Jira Query helper.
- *  The max level at which we want to retrieve the linked issues.
- */
+  * Jira Query helper.
+  * The max level at which we want to retrieve the linked issues.
+  */
 class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String] = List("New Feature", "Work Item", "Bug"), var maxLevel: Int = 3) {
 
   private var rootLevel = 0
@@ -40,7 +40,9 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
     connection.setHostnameVerifier(hv)
     val trustAllCerts = Array[TrustManager](new X509TrustManager() {
       def getAcceptedIssuers: Array[X509Certificate] = null
+
       def checkClientTrusted(certs: Array[X509Certificate], authType: String) {}
+
       def checkServerTrusted(certs: Array[X509Certificate], authType: String) {}
     })
 
@@ -55,9 +57,9 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
   }
 
   /**
-   * @param jqlString the query in JQL language.
-   * @return the list of issues returned by the query
-   */
+    * @param jqlString the query in JQL language.
+    * @return the list of issues returned by the query
+    */
   def queryIssues(jqlString: String): List[JiraIssue] = {
     val issuesStr = this.query(URLEncoder.encode(jqlString, "UTF-8"))
     val json = JsonParser.parse(issuesStr)
@@ -68,7 +70,8 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
     } yield key
 
     // when only one issue is returned by the query, there is no list
-    if (all.isEmpty) { // there is probably a cleaner way to do that
+    if (all.isEmpty) {
+      // there is probably a cleaner way to do that
       all = for {
         JString(key) <- allIssues
       } yield key
@@ -78,55 +81,69 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
 
   }
 
-  // TODO call and  test this method 
   private def queryLinkedJiraIssues(jiraIssue: JiraIssue, rootIssueKey: String): JiraIssue = {
-    queriedIssues.add(jiraIssue)
-    val src = query("key=" + jiraIssue.issueKey)
-    new JiraParser().extractJiraIssueFromJson(jiraIssue, src)
-    jiraIssue
+    queryIssues(jiraIssue, "key=" + jiraIssue.issueKey)
+  }
 
+  private def queryIssuesInEpic(issue: JiraIssue) = {
+    queryIssues(issue, "\"Epic Link\"=" + issue.issueKey)
+  }
+
+  private def queryIssues(issue: JiraIssue, jql: String): JiraIssue = {
+    queriedIssues.add(issue)
+    val src = query(URLEncoder.encode(jql, "UTF-8"))
+    new JiraParser().extractJiraIssueFromJson(issue, src)
+    issue
   }
 
   /**
-   * Recursive method to browse all linked Jira issues up to a given level.
-   *
-   * @param issue the issue from which we want to get the linked issues.
-   * @param issueTypes the list of issue types to browse
-   * @return all linked issues
-   */
+    * Recursive method to browse all linked Jira issues up to a given level.
+    *
+    * @param issue      the issue from which we want to get the linked issues.
+    * @param issueTypes the list of issue types to browse
+    * @return all linked issues
+    */
   def browse(issue: JiraIssue): HashSet[JiraIssue] = {
     browse(issue, issue.issueKey, 0)
   }
 
   /**
-   * Recursive method to browse all linked Jira issues up to a given level.
-   *
-   * @param issue the issue from which we want to get the linked issues.
-   * @param level the level at which we are browsing the linked issues.
-   * @param rootIssueKey the key of the root issue
-   * @return all linked issues
-   */
+    * Recursive method to browse all linked Jira issues up to a given level.
+    *
+    * @param issue        the issue from which we want to get the linked issues.
+    * @param level        the level at which we are browsing the linked issues.
+    * @param rootIssueKey the key of the root issue
+    * @return all linked issues
+    */
   private def browse(issue: JiraIssue, rootIssueKey: String, level: Int = 0): HashSet[JiraIssue] = {
     if (level > this.maxLevel) HashSet()
     else {
       if (canBrowse(issue)) {
-    	  issue.level = level 
+        issue.level = level
 
         // only keep not queried issues
+        // this line must be called before testing the Epic type because it will fill in the type information xs
         val linkedIssues = this.queryLinkedJiraIssues(issue, rootIssueKey).linkedIssues.filter(canBrowse)
 
+
+        // manage Epics
+        val allLinkedIssues =
+          if (issue.issueType == "Epic")
+            linkedIssues.union(this.queryIssuesInEpic(issue).linkedIssues).filter(canBrowse)
+          else linkedIssues
+
         // println("\t\tbrowsing: " + issue.issueKey )
-        linkedIssues.par.foreach(i => {
+        allLinkedIssues.par.foreach(i => {
           i.rootIssue = rootIssueKey
           browse(i, rootIssueKey, level + 1) // TODO maybe need to check canBrowse here instead of before...
-          i.level = level+1
+          i.level = level + 1
           // println("csv;" + rootIssueKey + ";" + issue.issueKey + ";" + i.issueKey)
         })
 
         // avoid printing twice the same issues when different paths lead to the same issues.
         // issues that cannot be browsed are removed 
-        issue.linkedIssues = linkedIssues 
-        linkedIssues
+        issue.linkedIssues = allLinkedIssues
+        allLinkedIssues
       } else HashSet()
 
     }

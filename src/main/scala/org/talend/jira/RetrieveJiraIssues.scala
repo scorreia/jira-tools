@@ -5,6 +5,8 @@ import java.net.URLEncoder
 /**
  * @author scorreia
  * The main object to retrieve jira issues and all linked issues.
+  *
+  * 2016-06: update. Use of Epics and Epic links = cf[11071]
  */
 object RetrieveJiraIssues {
   private var issueCount = 0
@@ -19,18 +21,21 @@ object RetrieveJiraIssues {
    */
   def main(args: Array[String]) {
 
+
     // check minimum number of arguments
     val nbArgs = 3
     if (args.size < nbArgs) {
       println("Expected " + nbArgs + " arguments! \n Please, give the login, password to jira, a search query surrounded by single quotes and optionally a search depth")
-      println("The search query can be for example: \n'project=PMDQ AND fixVersion = \"6.0 GA\"  AND labels= \"R&D_Signoff\"'")
+      println("The search query can be for example: \n\"\"\"project = TDQ AND type = Epic AND fixVersion = '6.3 GA'\"\"\"")
       println("Given " + args.size + " arguments: ")
       args.foreach(println)
     } else {
+      // args.foreach(println)
       if (args.size == 4) run(args(0), args(1), args(2), Integer.valueOf(args(3)))
       else run(args(0), args(1), args(2))
     }
   }
+
 
   /**
    * Recursively retrieves linked query down to a given depth.
@@ -42,11 +47,12 @@ object RetrieveJiraIssues {
   def run(user: String, passwd: String, userQuery: String, depth: Int = 3) {
     val startAt = System.currentTimeMillis()
 
-    val issueTypes = List("New Feature", "Work Item", "Bug")
+    val issueTypes = List("New Feature", "Work Item", "Bug", "Epic")
     val query = new QueryJira(user, passwd, issueTypes, depth);
 
+
     val jiraIssues = query.queryIssues(userQuery)
-    // val jiraIssues = List(new JiraIssue("PMDQ-252"))
+    // val jiraIssues = List(new JiraIssue("TDQ-12192"))
 
     // present initial list of issues
     println("#############  List of issues to browse  #################")
@@ -62,7 +68,7 @@ object RetrieveJiraIssues {
     println()
 
     // write header
-    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \t fixVersion(Max) \n")
+    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \t fixVersion(Max) \t time estimate \n")
 
     jiraIssues.foreach(jiraIssue => {
       val issues = query.browse(jiraIssue)
@@ -104,7 +110,8 @@ object RetrieveJiraIssues {
   }
 
   private def details(i: JiraIssue): String = {
-    i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level) + tabPrint(i.fixVersion ))
+    i.toString
+    // i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level) + tabPrint(i.fixVersion ) + tabPrint(i.timeestimate/(60*60*8)))
   }
 
   private def tabPrint(str: String): String = {
