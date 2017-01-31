@@ -6,12 +6,13 @@ import scala.collection.mutable.HashSet
 class JiraIssue(key: String) {
   val issueKey = key
   var issueProject = key.substring(0, key.indexOf('-'))
-  var issueType = ""
-  var summary = ""
-  var priority = ""
-  var status = ""
-  var fixVersion = ""
+  var issueType = "NA"
+  var summary = "Empty"
+  var priority = "Empty"
+  var status = "Empty"
+  var fixVersion = "Empty"
   var timeestimate = "0"
+  var aggregatetimeestimate = "0"
   var hasLinkedDoctIssue = false
   var hasLinkedQaiIssue = false
   var linkedIssues: HashSet[JiraIssue] = new HashSet
@@ -59,7 +60,7 @@ class JiraIssue(key: String) {
   }
 
   private def details(): String = {
-    rootIssue + tabPrint(issueKey) + tabPrint(sourceIssue) + tabPrint(issueType) + tabPrint(priority) + tabPrint(summary) + tabPrint(status) + tabPrint(issueProject) + tabPrint(String.valueOf(hasLinkedDoctIssue)) + tabPrint(String.valueOf(hasLinkedQaiIssue)) + tabPrint(String.valueOf(level)) + tabPrint(fixVersion ) + tabPrint(String.valueOf(Integer.parseInt(timeestimate)/(60*60*8)))
+    rootIssue + tabPrint(issueKey) + tabPrint(sourceIssue) + tabPrint(issueType) + tabPrint(priority) + tabPrint(summary) + tabPrint(status) + tabPrint(issueProject) + tabPrint(String.valueOf(hasLinkedDoctIssue)) + tabPrint(String.valueOf(hasLinkedQaiIssue)) + tabPrint(String.valueOf(level)) + tabPrint(aggregatetimeestimate) + tabPrint(fixVersion )
   }
 
   private def tabPrint(str: String): String = {

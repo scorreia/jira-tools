@@ -13,6 +13,7 @@ class JiraParser {
     def summary: String
     def issuetype: IssueType
     def status: Status
+    def priority : Priority
   }
   abstract class BaseIssue {
     def id: String
@@ -24,9 +25,14 @@ class JiraParser {
   // case class ProjectCategory(self: String, id: String, description: String, name: String)
   case class Project(key: String, name: String/*, projectCategory: ProjectCategory*/)
   case class Status(name: String)
+  case class Priority(name:String)
   case class FixVersion(name: String, releaseDate: Option[String])
-  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] , val status: Status, val timeestimate:Option[String]) extends AbstractFields
-  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project, val status: Status, val timeestimate:Option[String], val fixVersions: List[FixVersion]) extends AbstractFields
+  case class Fields(val summary: String, val issuetype: IssueType, val issuelinks: List[IssueLinks] ,
+                    val status: Status, val priority: Priority, val timeestimate:Option[String],
+                    val aggregatetimeestimate:Option[String]) extends AbstractFields
+  case class ParentFields(summary: String, issuetype: IssueType, issuelinks: List[IssueLinks], project: Project,
+                          val status: Status, val priority: Priority, val timeestimate:Option[String],
+                          val aggregatetimeestimate:Option[String], val fixVersions: List[FixVersion]) extends AbstractFields
   case class Issue(id: String, key: String, fields: Fields) extends BaseIssue
   case class ParentIssue(val id: String, key: String, val fields: ParentFields) extends BaseIssue
   case class Result(expand: String, startAt: Int, issues: List[ParentIssue])
@@ -97,29 +103,35 @@ class JiraParser {
     dest.issueProject = src.fields.project.key
     dest.issueType = src.fields.issuetype.name
     dest.status = src.fields.status.name
-    dest.timeestimate = src.fields.timeestimate.getOrElse("0")
+    dest.priority = src.fields.priority.name
+    dest.timeestimate = src.fields.timeestimate.getOrElse(dest.timeestimate)
+    dest.aggregatetimeestimate = src.fields.aggregatetimeestimate.getOrElse(dest.aggregatetimeestimate)
     dest
   }
 
   private def createJiraIssue(src: Issue)  = {
-    val j = new JiraIssue(src.key)
-    j.rootIssue = "" // reset root issue because it's a linked issue
-    j.issueType = src.fields.issuetype.name
-    j.summary = src.fields.summary
-    j.status = src.fields.status.name
-    j.timeestimate = src.fields.timeestimate.getOrElse("0")
-    j
+    val dest = new JiraIssue(src.key)
+    dest.rootIssue = "" // reset root issue because it's a linked issue
+    dest.issueType = src.fields.issuetype.name
+    dest.summary = src.fields.summary
+    dest.status = src.fields.status.name
+    dest.priority = src.fields.priority.name
+    dest.timeestimate = src.fields.timeestimate.getOrElse(dest.timeestimate)
+    dest.aggregatetimeestimate = src.fields.aggregatetimeestimate.getOrElse(dest.aggregatetimeestimate)
+    dest
   }
 
 
   private def createJiraIssue(src: ParentIssue)  = {
-    val j = new JiraIssue(src.key)
-    j.rootIssue = "" // reset root issue because it's a linked issue
-    j.issueType = src.fields.issuetype.name
-    j.summary = src.fields.summary
-    j.status = src.fields.status.name
-    j.timeestimate = src.fields.timeestimate.getOrElse("0")
-    j
+    val dest = new JiraIssue(src.key)
+    dest.rootIssue = "" // reset root issue because it's a linked issue
+    dest.issueType = src.fields.issuetype.name
+    dest.summary = src.fields.summary
+    dest.status = src.fields.status.name
+    dest.priority = src.fields.priority.name
+    dest.timeestimate = src.fields.timeestimate.getOrElse(dest.timeestimate)
+    dest.aggregatetimeestimate = src.fields.aggregatetimeestimate.getOrElse(dest.aggregatetimeestimate)
+    dest
   }
 
 }

@@ -2,6 +2,7 @@ package org.talend.jira
 
 import java.net.URL
 import java.security.cert.X509Certificate
+
 import scala.collection.mutable.HashSet
 import scala.io.Source
 import org.talend.jira.internal.JiraParser
@@ -11,12 +12,11 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSession
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JString
-import net.liftweb.json.JsonParser
+
+import net.liftweb.json._
 import sun.misc.BASE64Encoder
 import java.net.URLEncoder
+import java.util
 
 /**
   * Jira Query helper.
@@ -64,10 +64,13 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
     val issuesStr = this.query(URLEncoder.encode(jqlString, "UTF-8"))
     val json = JsonParser.parse(issuesStr)
     val allIssues = json \ "issues" \ "key"
+
     var all = for {
       JArray(o) <- allIssues
       JField("key", JString(key)) <- o
     } yield key
+
+
 
     // when only one issue is returned by the query, there is no list
     if (all.isEmpty) {
@@ -77,7 +80,8 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
       } yield key
     }
 
-    all.map(key => new JiraIssue(key))
+     all.distinct.map(key => new JiraIssue(key))
+//    all.map(key => new JiraIssue(key))
 
   }
 
@@ -100,7 +104,6 @@ class QueryJira(jiraLogin: String, jiraPassword: String, issueTypes: List[String
     * Recursive method to browse all linked Jira issues up to a given level.
     *
     * @param issue      the issue from which we want to get the linked issues.
-    * @param issueTypes the list of issue types to browse
     * @return all linked issues
     */
   def browse(issue: JiraIssue): HashSet[JiraIssue] = {

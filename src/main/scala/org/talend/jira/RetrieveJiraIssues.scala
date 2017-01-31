@@ -30,7 +30,7 @@ object RetrieveJiraIssues {
       println("Given " + args.size + " arguments: ")
       args.foreach(println)
     } else {
-      // args.foreach(println)
+      args.foreach(println)
       if (args.size == 4) run(args(0), args(1), args(2), Integer.valueOf(args(3)))
       else run(args(0), args(1), args(2))
     }
@@ -39,12 +39,14 @@ object RetrieveJiraIssues {
 
   /**
    * Recursively retrieves linked query down to a given depth.
-   * @param user the Jira login
+    *
+    * @param user the Jira login
    * @param passwd the Jira password
    * @param userQuery the JQL query
    * @param depth the number of intermediate issues between two linked issues
    */
   def run(user: String, passwd: String, userQuery: String, depth: Int = 3) {
+    println("Retrieving " + userQuery + " with depth " + depth)
     val startAt = System.currentTimeMillis()
 
     val issueTypes = List("New Feature", "Work Item", "Bug", "Epic")
@@ -68,9 +70,11 @@ object RetrieveJiraIssues {
     println()
 
     // write header
-    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Summary \t Status \t Project\t has DOCT \thas QAI \t level \t fixVersion(Max) \t time estimate \n")
+    writer.write("Main issue\tRoot issue\t Linked issues\t Source \t Type \t Priority \t Summary \t Status \t Project\t has DOCT \thas QAI \t level  \t aggregate time estimate \t fixVersion(Max) \n")
 
-    jiraIssues.foreach(jiraIssue => {
+//    jiraIssues.distinct.foreach(jiraIssue => {
+
+      jiraIssues.foreach(jiraIssue => {
       val issues = query.browse(jiraIssue)
       writer.write(recursivePrint(jiraIssue))
 
@@ -103,20 +107,11 @@ object RetrieveJiraIssues {
    */
   private def recursivePrint(issue: JiraIssue, isRoot: Boolean = true): String = {
     val sb = new StringBuilder()
-    if (isRoot) sb.append(issue.issueKey + "\t" + details(issue) + "\n")
-    else sb.append("\t" + details(issue) + "\n")
+    if (isRoot) sb.append(issue.issueKey + "\t" + issue.toString + "\n")
+    else sb.append("\t" + issue.toString + "\n")
     issue.linkedIssues.foreach(l => sb.append(recursivePrint(l, false)))
     sb.toString
   }
 
-  private def details(i: JiraIssue): String = {
-    i.toString
-    // i.rootIssue + tabPrint(i.issueKey) + tabPrint(i.sourceIssue) + tabPrint(i.issueType) + tabPrint(i.priority) + tabPrint(i.summary) + tabPrint(i.status) + tabPrint(i.issueProject) + tabPrint(String.valueOf(i.hasLinkedDoctIssue)) + tabPrint(String.valueOf(i.hasLinkedQaiIssue)) + tabPrint(String.valueOf(i.level) + tabPrint(i.fixVersion ) + tabPrint(i.timeestimate/(60*60*8)))
-  }
-
-  private def tabPrint(str: String): String = {
-    if (str != null && !str.isEmpty()) "\t" + str
-    else ""
-  }
 
 }
